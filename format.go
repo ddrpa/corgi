@@ -25,7 +25,7 @@ func formatRequest(r *http.Request) []string {
 // 格式化 HTTP 响应
 func formatResponse(r *http.Response) []string {
 	var response []string
-	response = append(response, fmt.Sprintf("%v %v %v", r.Proto, r.StatusCode, r.Status))
+	response = append(response, fmt.Sprintf("%v %v", r.Proto, r.Status))
 	response = append(response, formatHeader(r.Header)...)
 	if r.ContentLength > 0 {
 		response = append(response, "")
