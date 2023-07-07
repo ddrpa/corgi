@@ -2,23 +2,27 @@
 
 ```shell
 $ ./corgi -h
-usage: corgi [-h|--help] [-p|--port <integer>] [-m|--max-printable-size
-             <integer>] [--pretty]
+usage: corgi [-h|--help] [-p|--port <integer>] [--max-printable-size <integer>]
+             [--pretty] [--fetch "<value>"]
 
-             Corgi HTTP Request Logger, version 0.0.1
+             Corgi HTTP Request Logger, version 1.1.0
 
 Arguments:
 
   -h  --help                Print help information
   -p  --port                监听指定端口. Default: 8000
-  -m  --max-printable-size  请求体最大打印长度（0
+      --max-printable-size  请求体最大打印长度（0
                             表示不截断），JSON 和 URLEncoded
                             表单不受影响）. Default: 256
       --pretty              特定类型请求体输出美化
+      --fetch               转发请求到指定地址
 ```
 
-可能有一些同学已经用过这个 Z shell 函数了，函数会打印指定端口收到的 HTTP 请求并返回 `200 OK`，在调试时非常有用。
-缺点大概是还没用 Bash 重写，而且无限循环的退出机制也没有认真研究过。
+调试在线 HTTP Endpoint 可能需要为运行中的服务添加日志追踪点，重新打包和部署应用。
+Corgi 可以通过代理接口在不修改代码的情况下展示请求信息。
+
+可能有一些同学已经用过这个 Z shell 函数了，函数会打印指定端口收到的 HTTP 请求并返回 `200 OK`，在调试时非常有用（，
+缺点大概是还没用 Bash 重写，而且无限循环的退出机制也没有认真研究过）。Corgi 是这个想法的扩充。
 
 ```shell
 listen_port () {
@@ -32,7 +36,7 @@ listen_port () {
 }
 ```
 
-Corgi 做了同样的事情：
+- Corgi 可以美化输出 `application/json` 和 `application/x-www-form-urlencoded` 类型的请求体，后者会按行列出键值对，其中的值会被 URL 解码。
 
 ```shell
 $ ./corgi -p 8000 --pretty
@@ -53,4 +57,33 @@ connection: keep-alive
 
 payload={"username":"admin","password":"wecsnuigb43j@_f"}
 method=PATCH
+```
+
+- Corgi 可以把请求转发到目标地址，并且将目标地址的响应返回给客户端：
+
+```shell
+$ ./corgi -p 8000 --fetch localhost:8001 --pretty
+
+2023/07/07 16:37:40 POST /proxy?url=/iot/alipayApi/faceAuth/getAlipayUserInfo HTTP/1.1
+> RemoteAddr: [::1]:59214
+> Host: localhost:8000
+> user-agent: PostmanRuntime/7.32.3
+> content-type: application/x-www-form-urlencoded
+> cookie: Cookie_1=value
+> content-length: 98
+> authorization: Bearer Igp5d444444444444444
+> accept: */*
+> postman-token: 5dfc18b4-5902-4a15-94f5-53b23db764e7
+> accept-encoding: gzip, deflate, br
+> connection: keep-alive
+> 
+> payload={"username":"admin","password":"wecsnuigb43j@_f"}
+> method=PATCH
+
+2023/07/07 16:37:40 HTTP/1.1 200 200 OK
+< date: Fri, 07 Jul 2023 08:37:40 GMT
+< content-length: 9
+< content-type: text/plain; charset=utf-8
+< 
+< woof woof
 ```

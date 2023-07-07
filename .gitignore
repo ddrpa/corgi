@@ -1,5 +1,6 @@
 .idea/
 target/
+corgi
 
 # Created by https://www.toptal.com/developers/gitignore/api/osx,linux,windows,sublimetext,intellij,intellij+all,intellij+iml,go,golang,jetbrains,jetbrains+all,jetbrains+iml,svn,vim,webstorm,webstorm+all,webstorm+iml,zsh,goland,goland+all,goland+iml
 # Edit at https://www.toptal.com/developers/gitignore?templates=osx,linux,windows,sublimetext,intellij,intellij+all,intellij+iml,go,golang,jetbrains,jetbrains+all,jetbrains+iml,svn,vim,webstorm,webstorm+all,webstorm+iml,zsh,goland,goland+all,goland+iml
