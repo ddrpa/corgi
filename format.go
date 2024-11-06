@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,7 +19,7 @@ func formatRequest(r *http.Request) []string {
 	request = append(request, formatHeader(r.Header)...)
 	if r.ContentLength > 0 {
 		request = append(request, "")
-		request = append(request, formatRequestBody(r, r.Header.Get("Content-Type"))...)
+		request = append(request, formatRequestBody(r, r.Header.Get("Content-Type"), prettyPrint)...)
 	}
 	return request
 }
@@ -47,7 +49,10 @@ func formatHeader(header http.Header) []string {
 }
 
 // 格式化请求体，body 会被消耗，需要复用时在调取前先复制一份
-func formatRequestBody(r *http.Request, contentType string) []string {
+func formatRequestBody(r *http.Request, contentType string, pretty bool) []string {
+	if !pretty {
+		return prettyRaw(r.Body, int(r.ContentLength))
+	}
 	switch contentType {
 	case "application/json":
 		return prettyJSON(r.Body)
@@ -71,7 +76,12 @@ func prettyJSON(body io.ReadCloser) []string {
 		return []string{err.Error()}
 	}
 	if b != nil {
-		return []string{string(b)}
+		var prettyJSON bytes.Buffer
+		error := json.Indent(&prettyJSON, b, "", "  ")
+		if error != nil {
+			return []string{error.Error()}
+		}
+		return []string{prettyJSON.String()}
 	} else {
 		return []string{"[empty body]"}
 	}

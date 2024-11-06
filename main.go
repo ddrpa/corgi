@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Version            = "1.1.0"
+	Version            = "1.1.1"
 	DefaultPort        = 8000
 	DefaultMaxBodySize = 256
 )
