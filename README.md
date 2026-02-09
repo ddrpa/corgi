@@ -36,7 +36,15 @@ listen_port () {
 }
 ```
 
-- Corgi 可以美化输出 `application/json` 和 `application/x-www-form-urlencoded` 类型的请求体，后者会按行列出键值对，其中的值会被 URL 解码。
+## AI 使用声明
+
+项目使用 AI 辅助编码，用于 bug 查找和修复。
+
+## HowTo
+
+### 美化输出 `application/json` 和 `application/x-www-form-urlencoded` 类型的请求体
+
+后者会按行列出键值对，其中的值会被 URL 解码。
 
 ```shell
 $ ./corgi -p 8000 --pretty
@@ -59,7 +67,7 @@ payload={"username":"admin","password":"wecsnuigb43j@_f"}
 method=PATCH
 ```
 
-- Corgi 可以把请求转发到目标地址，并且将目标地址的响应返回给客户端：
+### 把请求转发到目标地址，并且将目标地址的响应返回给客户端
 
 ```shell
 $ ./corgi -p 8000 --fetch localhost:8001 --pretty

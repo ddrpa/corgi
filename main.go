@@ -2,17 +2,19 @@ package main
 
 import (
 	"bytes"
-	"github.com/akamensky/argparse"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/akamensky/argparse"
 )
 
 const (
-	Version            = "1.1.1"
+	Version            = "1.1.2"
 	DefaultPort        = 8000
 	DefaultMaxBodySize = 256
 )
@@ -20,6 +22,7 @@ const (
 var maxPrintableBodySize int
 var prettyPrint bool
 var fetchRemoteAddr string
+var httpClient *http.Client
 
 func main() {
 	parser := argparse.NewParser("corgi", "Corgi HTTP Request Logger, version "+Version)
@@ -39,6 +42,9 @@ func main() {
 	prettyPrint = *pretty
 	fetchRemoteAddr = *fetch
 
+	// 复用 http.Client 以利用连接池
+	httpClient = &http.Client{}
+
 	var handler func(w http.ResponseWriter, r *http.Request)
 	if fetchRemoteAddr != "" {
 		log.Println("Corgi will grab and retrieve request to " + fetchRemoteAddr)
@@ -52,22 +58,26 @@ func main() {
 			// 把请求转发到指定地址
 			remoteResponse, err := throwOutRequest(originRequest, requestBodyBytes)
 			var responseLog []string
-			// 暂存响应体
-			responseBodyBytes := makeResponseBodyReusable(remoteResponse)
 			if err != nil {
 				responseLog = []string{err.Error()}
-			} else {
-				responseLog = formatResponse(remoteResponse)
+				log.Println(strings.Join(responseLog, "\n< ") + "\n")
+				w.WriteHeader(http.StatusBadGateway)
+				_, _ = w.Write([]byte(err.Error()))
+				return
 			}
+			defer remoteResponse.Body.Close()
+			// 暂存响应体
+			responseBodyBytes := makeResponseBodyReusable(remoteResponse)
+			responseLog = formatResponse(remoteResponse)
 			// 响应记录前添加方向符号
 			log.Println(strings.Join(responseLog, "\n< ") + "\n")
-			// 把响应转发给原始请求者
-			w.WriteHeader(remoteResponse.StatusCode)
+			// 把响应转发给原始请求者（必须先设置 Header，再调用 WriteHeader）
 			for name, values := range remoteResponse.Header {
 				for _, value := range values {
 					w.Header().Add(name, value)
 				}
 			}
+			w.WriteHeader(remoteResponse.StatusCode)
 			_, _ = w.Write(responseBodyBytes)
 		}
 	} else {
@@ -97,19 +107,23 @@ func makeResponseBodyReusable(r *http.Response) []byte {
 }
 
 func throwOutRequest(r *http.Request, body []byte) (*http.Response, error) {
-	cli := &http.Client{}
-	newRequest, err := http.NewRequest(r.Method, r.URL.String(), io.NopCloser(bytes.NewBuffer(body)))
+	// 构建目标 URL
+	targetURL := &url.URL{
+		Scheme:   "http",
+		Host:     fetchRemoteAddr,
+		Path:     r.URL.Path,
+		RawQuery: r.URL.RawQuery,
+	}
+	newRequest, err := http.NewRequest(r.Method, targetURL.String(), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
-	newRequest.Header = r.Header
-	newRequest.URL.Host = fetchRemoteAddr
-	newRequest.URL.Scheme = "http"
-	// TODO 有时候不能正确计算 Content-Length？
+	// 复制请求头（避免直接赋值导致共享引用）
+	for name, values := range r.Header {
+		for _, value := range values {
+			newRequest.Header.Add(name, value)
+		}
+	}
 	newRequest.ContentLength = int64(len(body))
-	response, err := cli.Do(newRequest)
-	if err != nil {
-		return nil, err
-	}
-	return response, nil
+	return httpClient.Do(newRequest)
 }
