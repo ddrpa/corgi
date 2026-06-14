@@ -1,5 +1,11 @@
 # Corgi - 打印 HTTP 请求
 
+> 2026-06-14：推荐使用 [pugi - GitHub](https://github.com/ddrpa/pugi)
+> 
+> pugi 是基于 eBPF 的 HTTP 流量观测工具，通过 tracepoint 挂接到目标进程的系统调用，重建 HTTP 报文并输出到终端，整个过程对目标进程几乎没有影响。
+
+---
+
 ```shell
 $ ./corgi -h
 usage: corgi [-h|--help] [-p|--port <integer>] [--max-printable-size <integer>]
